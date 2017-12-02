@@ -1,0 +1,12 @@
+---
+title: "Stan tutorial"
+author: "Steve Simon"
+date: "December 1, 2017"
+output: html_document
+---
+
+This program shows a few features of Stan, a program to conduct Bayesian data analyses.
+
+```{r test}
+print(1:5)
+```

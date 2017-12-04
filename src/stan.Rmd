@@ -21,6 +21,10 @@ I am totally clueless about the toolchain suggestions for Mac and Linux and almo
 
 Stan can easily run in parallel and can take advantage of the multiple cores available on many personal computers.
 
+Stan uses a new approach
+
+https://www.youtube.com/watch?v=59vKonIy2uU
+
 ```{r test}
 print(1:5)
 ```

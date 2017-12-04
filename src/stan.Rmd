@@ -5,7 +5,21 @@ date: "December 1, 2017"
 output: html_document
 ---
 
-This program shows a few features of Stan, a program to conduct Bayesian data analyses.
+This program shows a few features of Stan, a program to conduct Bayesian data analyses. A detailed overview of the design of Stan appears in
+
+Carpenter B et al (2017) Stan: A Probabilistic Programming Language. Journal of Statistical Software 70(1). Available at https://www.jstatsoft.org/article/view/v076i01.
+
+You can find other resources for Stan at http://mc-stan.org/.
+
+You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.
+
+RStan takes code written in Stan, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
+
+In particular, you need a toolchain (a set of programming tools that help with the compiling and running of C++ code within R). The folks at Stan recommend RTools for Windows users. For the Mac, they recommend that you use "an official Xcode release from Apple."  Linux usually has all the pieces you need ("use your package manager to install build-essential and a recent version of either g++ or clang++. The package libssl-dev (up to version 1.0; version 1.1 brakes package PKI) is required as well."). 
+
+I am totally clueless about the toolchain suggestions for Mac and Linux and almost totally clueless for Windows as well. The folks at Stan offer some simple tests that you can run to insure that all the pieces work together.
+
+Stan can easily run in parallel and can take advantage of the multiple cores available on many personal computers.
 
 ```{r test}
 print(1:5)

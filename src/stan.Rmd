@@ -57,7 +57,7 @@ Stan uses a new approach to simulate a posterior distribution called the Hamilto
 
 The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much better (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.
 
-I like Stan, however, not for its speed, but for the more logical layout. Both BUGS and jags create a directed acyclic graph, and the order of the statements in BUGS and jags is not important.
+I like Stan, however, not for its speed, but for the more logical layout. Both BUGS and jags create a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph), and the order of the statements in BUGS and jags is not important.
 
 In Stan, however, order is important and different types of programming statements belong in different parts of your program.
 

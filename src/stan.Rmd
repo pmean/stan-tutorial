@@ -5,11 +5,15 @@ date: "December 1, 2017"
 output: html_document
 ---
 
+## Introduction
+
 This program shows a few features of Stan, a program to conduct Bayesian data analyses. A detailed overview of the design of Stan appears in
 
 Carpenter B et al (2017) Stan: A Probabilistic Programming Language. Journal of Statistical Software 70(1). Available at https://www.jstatsoft.org/article/view/v076i01.
 
 You can find other resources for Stan at http://mc-stan.org/.
+
+## Installation details
 
 You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.
 
@@ -21,9 +25,41 @@ I am totally clueless about the toolchain suggestions for Mac and Linux and almo
 
 Stan can easily run in parallel and can take advantage of the multiple cores available on many personal computers.
 
-Stan uses a new approach
+## Markov Chain Moten Carlo
 
-https://www.youtube.com/watch?v=59vKonIy2uU
+Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution, f($\theta$) and a conditional likelihood g(Y|$\theta$). The posterior distribution is given by the formula
+
+$h(\theta|Y)=\frac{f(\theta)g(Y|\theta)}{\int{f(\theta)g(Y|\theta)d\theta}}$
+
+In many Bayesian applications, $\theta$ is a high dimensional vector. For example, in certain longitudinal and hierarchical models, there is one parameter for each subject in your data set. This means that the integral in the denominator is a high dimensional integral. For some settings, most notably when you have a [conjugate prior distribution](https://en.wikipedia.org/wiki/Conjugate_prior), you can calculate this integral directly. But for many interesting Bayesian data analyses, the integral has no closed form. Researchers in the world of Bayesian data analysis used to have to rely on complex numerical integration approaches.
+
+But in the early 1990s, researchers discovered several simple approaches to simulate posterior distributions. These approaches, under the general name of Markov Chain Monte Carlo (MCMC) methods, relied on the fact that the denominator is just a constant, albeit a very difficult constant to compute. This means that while you might not know the posterior density at any particular value of $\theta_i$, you do know the height of the density at $\theta_i$ relative to the height of the density at $\theta_j$.
+
+One of the simplest MCMC methods, the Metropolis algorithm uses a simple acceptance/rejection method combined with a jumping distribution. You calculate the ratio of density at the point where you currently are and at a point selected by the jumping distribution. If the density is higher at the jumping point, always make the jump. If the density is not higher at the jumping point, stay where you are for another round part of the time and jump part of the time. How often you jump when the density is lower depends on the ratio. This insures that you jump frequently to places where the density is relatively large, but only rarely to places where the density is relatively small (and never to places where the density is zero).
+
+I have a [simple illustration of the Metropolis algorithm](http://www.pmean.com/07/MetropolisAlgorithm.html) on my website. I also developed a simulation of the geometric distribution using the Metropolis algorithm and couched it in terms of a [baby learning how to walk](http://blog.pmean.com/baby-walk/).
+
+There is a fair amount of autocorrelation in the successive values of the MCMC simulation. This occurs for two reasons. First, the jumping process insures that the successive values are close to one another. Second, the acceptance/rejection approach leads to situations where the sequence sometimes "stutters" and stays at the same position. This leads to a pathchiness in the simulation that is only overcome with simulation of thousands or tens of thousands of steps.
+
+## Early programs that used MCMC
+
+One of the first programs that allowed amateurs like me to apply MCMC simulations to Bayesian models was WinBUGS. BUGS stands for Bayes Using Gibbs Sampling and Gibbs sampling is another MCMC approach. WinBUGS first appeared on the scene in 1991, though I did not start exploring WinBUGS until 2010.
+
+Closely related to WinBUGS is OpenBUGS, an attempt to make the Gibbs sampler available to operating systems other than Windows.
+
+I found that I had better luck using a program called jags (just another Gibbs sampler). It wasn't too picky about what version of R you were using and it had better error messages.
+
+All three programs allow you to set up your data sets in R and then pass your data to that program and then analyze the results within R. These programs allow you to explore non-conjugate priors, which greatly broadens the scope of problems that you can apply Bayesian models to.
+
+## How Stan improves on jags and BUGS
+
+Stan uses a new approach to simulate a posterior distribution called the Hamiltonian Markov Chain (HMC). The HMC relies on the fact that not only do you know the relative height of the density at $\theta_i$ but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It's like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here's [an illustration of HMC in action](https://www.youtube.com/watch?v=59vKonIy2uU).
+
+The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much better (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.
+
+I like Stan, however, not for its speed, but for the more logical layout. Both BUGS and jags create a directed acyclic graph, and the order of the statements in BUGS and jags is not important.
+
+In Stan, however, order is important and different types of programming statements belong in different parts of your program.
 
 ```{r test}
 print(1:5)

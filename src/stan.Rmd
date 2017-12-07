@@ -17,7 +17,7 @@ You can find other resources for Stan at http://mc-stan.org/.
 
 You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.
 
-RStan takes code written in Stan, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
+As described in footnote 2 on page 3 of Carpenter (2107), RStan takes code written in Stan, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
 
 In particular, you need a toolchain (a set of programming tools that help with the compiling and running of C++ code within R). The folks at Stan recommend RTools for Windows users. For the Mac, they recommend that you use "an official Xcode release from Apple."  Linux usually has all the pieces you need ("use your package manager to install build-essential and a recent version of either g++ or clang++. The package libssl-dev (up to version 1.0; version 1.1 brakes package PKI) is required as well."). 
 
@@ -53,13 +53,21 @@ All three programs allow you to set up your data sets in R and then pass your da
 
 ## How Stan improves on jags and BUGS
 
-Stan uses a new approach to simulate a posterior distribution called the Hamiltonian Markov Chain (HMC). The HMC relies on the fact that not only do you know the relative height of the density at $\theta_i$ but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It's like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here's [an illustration of HMC in action](https://www.youtube.com/watch?v=59vKonIy2uU).
+On page 2 of Carpenter et al (2017), Stan differes from BUGS and jags in two ways: First, stan uses a "new imperative probabilistic programming" approach compared to the "declarative graphical modeling" approach of BUGS and jags. Second, Stan uses a new approach to simulate a posterior distribution called the Hamiltonian Markov Chain (HMC). Let me tackle the second issue first.
 
-The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much better (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.
+## Stan and the HMC
+
+The HMC relies on the fact that not only do you know the relative height of the density at $\theta_i$ but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It's like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here's [an illustration of HMC in action](https://www.youtube.com/watch?v=59vKonIy2uU).
+
+The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much improved (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.
+
+## Stan and the imperative probabilistc programming approach.
 
 I like Stan, however, not for its speed, but for the more logical layout. Both BUGS and jags create a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph), and the order of the statements in BUGS and jags is not important.
 
 In Stan, however, order is important and different types of programming statements belong in different parts of your program.
+
+All variables in Stan are static, meaning that they can't change from integer to real or from vector to matrix in the middle of the program. You need to be careful Stan has real and int 
 
 ```{r test}
 print(1:5)

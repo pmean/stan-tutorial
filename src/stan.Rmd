@@ -25,6 +25,10 @@ I am totally clueless about the toolchain suggestions for Mac and Linux and almo
 
 Stan can easily run in parallel and can take advantage of the multiple cores available on many personal computers.
 
+## Stan, a very simple example
+
+
+
 ## Markov Chain Moten Carlo
 
 Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution, f($\theta$) and a conditional likelihood g(Y|$\theta$). The posterior distribution is given by the formula
@@ -67,7 +71,7 @@ I like Stan, however, not for its speed, but for the more logical layout. Both B
 
 In Stan, however, order is important and different types of programming statements belong in different parts of your program.
 
-All variables in Stan are static, meaning that they can't change from integer to real or from vector to matrix in the middle of the program. You need to be careful Stan has real and int 
+All variables in Stan are static, meaning that they can't change from integer to real or from vector to matrix in the middle of the program. You need to be careful when you mix integer and real values. Usually it works, but there are a few exceptions.
 
 ```{r test}
 print(1:5)

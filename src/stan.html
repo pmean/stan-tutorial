@@ -132,13 +132,163 @@ $(document).ready(function () {
 <div id="installation-details" class="section level2">
 <h2>Installation details</h2>
 <p>You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.</p>
-<p>RStan takes code written in Stan, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.</p>
+<p>As described in footnote 2 on page 3 of Carpenter (2107), Stan takes code written in its own language, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.</p>
 <p>In particular, you need a toolchain (a set of programming tools that help with the compiling and running of C++ code within R). The folks at Stan recommend RTools for Windows users. For the Mac, they recommend that you use “an official Xcode release from Apple.” Linux usually has all the pieces you need (“use your package manager to install build-essential and a recent version of either g++ or clang++. The package libssl-dev (up to version 1.0; version 1.1 brakes package PKI) is required as well.”).</p>
 <p>I am totally clueless about the toolchain suggestions for Mac and Linux and almost totally clueless for Windows as well. The folks at Stan offer some simple tests that you can run to insure that all the pieces work together.</p>
 <p>Stan can easily run in parallel and can take advantage of the multiple cores available on many personal computers.</p>
 </div>
-<div id="markov-chain-moten-carlo" class="section level2">
-<h2>Markov Chain Moten Carlo</h2>
+<div id="stan-a-very-simple-example" class="section level2">
+<h2>Stan, a very simple example</h2>
+<p>If you ever want to tinker with BUGS, jags, or Stan, you should start with the easiest example possible, a beta-binomial model. The example found on page 3 of Carpenter (2017) is just slightly more complicated because it has a vector of Bernoulli observations rather than a single binomial observation.</p>
+<p>You need to store the Stan code in a file.</p>
+<pre class="r"><code>f &lt;- &quot;beta-bernoulli.stan&quot;
+cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
+<pre><code>## data {
+##   int&lt;lower=0&gt; N;               // N &gt;= 0
+##   int&lt;lower=0, upper=1&gt; y[N];   // y[n] in { 0, 1 }
+## }
+## parameters {
+##   real&lt;lower=0, upper=1&gt; theta; // theta in [0, 1]
+## }
+## model {
+##   theta ~ beta(1, 1);           // prior
+##   y ~ bernoulli(theta);         // likelihood
+## }</code></pre>
+<p>Although you can specify your data in Stan itself, you would normally find it easier to store your data in a list.</p>
+<pre class="r"><code>N &lt;- 10
+y &lt;- c(0, 1, 0, 0, 0, 0, 0, 0, 0, 1)
+data_beta_bernoulli &lt;- list(N=N, y=y)</code></pre>
+<p>Then you tell R where data and the code live</p>
+<pre class="r"><code>library(ggplot2)
+library(magrittr)
+library(rstan)</code></pre>
+<pre><code>## Loading required package: StanHeaders</code></pre>
+<pre><code>## rstan (Version 2.14.2, packaged: 2017-03-19 00:42:29 UTC, GitRev: 5fa1e80eb817)</code></pre>
+<pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
+## rstan_options(auto_write = TRUE)
+## options(mc.cores = parallel::detectCores())</code></pre>
+<pre><code>## 
+## Attaching package: 'rstan'</code></pre>
+<pre><code>## The following object is masked from 'package:magrittr':
+## 
+##     extract</code></pre>
+<pre class="r"><code>fit_beta_bernoulli &lt;- stan(file=f,
+  data=data_beta_bernoulli, iter= 10000, warmup=1000, chains = 4)</code></pre>
+<pre><code>## In file included from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config.hpp:39:0,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/math/tools/config.hpp:13,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core/var.hpp:7,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core.hpp:12,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/mat.hpp:4,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math.hpp:4,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/src/stan/model/model_header.hpp:4,
+##                  from file12ec2aec6c90.cpp:8:
+## C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
+##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
+##  ^
+## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
+## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;
+## 
+## SAMPLING FOR MODEL 'beta-bernoulli' NOW (CHAIN 1).
+## 
+## Chain 1, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 1, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 1, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 1, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 1, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 1, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 1, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 1, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 1, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 1, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 1, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 1, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0 seconds (Warm-up)
+##                0.169 seconds (Sampling)
+##                0.169 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'beta-bernoulli' NOW (CHAIN 2).
+## 
+## Chain 2, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 2, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 2, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 2, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 2, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 2, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 2, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 2, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 2, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 2, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 2, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 2, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.015 seconds (Warm-up)
+##                0.138 seconds (Sampling)
+##                0.153 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'beta-bernoulli' NOW (CHAIN 3).
+## 
+## Chain 3, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 3, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 3, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 3, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 3, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 3, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 3, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 3, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 3, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 3, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 3, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 3, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.018 seconds (Warm-up)
+##                0.119 seconds (Sampling)
+##                0.137 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'beta-bernoulli' NOW (CHAIN 4).
+## 
+## Chain 4, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 4, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 4, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 4, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 4, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 4, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 4, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 4, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 4, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 4, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 4, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 4, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.016 seconds (Warm-up)
+##                0.125 seconds (Sampling)
+##                0.141 seconds (Total)</code></pre>
+<pre class="r"><code>print(fit_beta_bernoulli)</code></pre>
+<pre><code>## Inference for Stan model: beta-bernoulli.
+## 4 chains, each with iter=10000; warmup=1000; thin=1; 
+## post-warmup draws per chain=9000, total post-warmup draws=36000.
+## 
+##        mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+## theta  0.25    0.00 0.12  0.06  0.16  0.24  0.33  0.52 18244    1
+## lp__  -7.27    0.01 0.74 -9.34 -7.43 -6.99 -6.80 -6.75 17547    1
+## 
+## Samples were drawn using NUTS(diag_e) at Fri Dec 08 11:39:10 2017.
+## For each parameter, n_eff is a crude measure of effective sample size,
+## and Rhat is the potential scale reduction factor on split chains (at 
+## convergence, Rhat=1).</code></pre>
+<pre class="r"><code>plot(fit_beta_bernoulli)</code></pre>
+<pre><code>## ci_level: 0.8 (80% intervals)</code></pre>
+<pre><code>## outer_level: 0.95 (95% intervals)</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAAt1BMVEUAAAAiIiIzMzNNTU1NTW5NTY5Nbm5Nbo5NbqtNjshuTU1uTW5ubk1ubm5ubo5ujqtujshuq+SOTU2Obk2Obm6Ojk2Ojm6OjquOq6uOq8iOq+SOyOSOyP+pqamrbk2rbm6rjm6rjquryOSr5P+yAB3Ijk3Ijm7Iq47IyKvIyOTI5P/I/+TI///kq27kq47kyI7kyKvk5Kvk5Mjk5P/k/8jk////yI7/5Kv/5Mj/5OT//8j//+T///8UzxqDAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO3da4MehlVd4ZAxkLhcQkJLKSlNAw40xSUtjWNi///fVVuWHFkaqTnDxnvP8nq+2B75VWblzGzN3d/7XJL0JN9rPwOS9Fw5oJL0RA6oJD2RAypJT+SAStITOaCS9EQOqCQ9kQMqSU/kgErSEzmgkvREDqgkPZEDKklP5IBK0hN9qwP6B3/wbf6v5f3X9jPw74pdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DEjXfe/vv/StvoC9j8d7vobrHn35/vS///rLv3z2tw8PD3/4T7/X7/PyIe/ngC7L1n25nV/64q/R3/fJPN7zNVz3yIB+9g8f/uA4oF8/5P0c0GXJupfr+b2XGxr8nZ/M4z1fw3VvD+ivfvLwcBzQ3z3k/RzQZcG61+fzxYTmfusn83jP13DdWwP62x8/XAf0tYe8nwO6LFf35n5OLKjHe76G6xzQg+E7BsTq3t7PhQX1eM/XcJ0DejB8xwAH9BmzruSNAf344Ws//XpAf/WXDw8f/Ohfvv6X/vUf/uSLX/izn//67Yd84bNf/eWHX/z9B3/2129NKmtA/16Pe2Q/v/e99jP1nVZ6fYl51gP6P3/x1T9/8Hcv/53/9eHD6095Y0B/8+HX//jBT9/4H3NAvxMc0DWl15eYZz2g//HVE16+M/+Lh28u5jcH9LX9fG1zX3JAvwO+944BdUJ7Sq8vMc95QF/zF1/+G5+8/pQvN/V9D/nhN393B/S74NH99E3QptLrS8zzGdC3P4n0xT/88vNPf/JqDl/88sOPfv35p3/79UK+9pAXb4D+4S+/eOxHDw+vfWbp+1/59gb0Ha/FSe3XilX+3zXnW3htKPvWhuWtoXnzCW8N6Iu/fzGMX/7dJ1/P5u8+R//6Z+H/9R//03948Y7714944dWA/tdvy7dws/ZrxSr/75rzLbw2lH1rw/LmG8P//wH96Tee+tHvPrT5yatfffTLmF488Y2vgfJd+O+Cd7yIt5+t77LS60vMc34X/qu1fDWHr39p6Iu3Mf/i80cH9P+8+EonB/S7yAGdU3p9ieEM6FcfAn3j00TfHNDPfvWzP3n9k0yvcUC/A/ws/J7S60vMcx7Qrzbw9x7Qz17/KicH9DvJN0DXlF5fYr47A/ryE/d/9Fc//79+DPS7ygFdU3p9ieEM6KPfHv/aQz5++UVOj39miTWgNH4v/DNmXclxQF//LPwjD3nzEQ7oM+KAPmPWlTw+oF9t4GMD+ruvA33sIa89+OMHB/R58eeBPmPWlbw1oK8+9f6v//LogL78TqR/+fzz//3jP/qr//Ev33zIyy+9/+WrzyWhPwZK40+kf8asK3l8QB9efIXnYwP6+re+v3rSaw/56OHtX/4dB3SZ/02kZ8y6kre/ifTVQv7w8QH95kb+9I2HvPbDmP707Y+WOqDL/K9yPmPWlbw9oK++UuldA/raV3p+8PM3H/L5Jy8X9IO/+foblX7HAV3mfxf+GbOu5LH/rPEvPvzyB8r//B0D+uon0n/w6kfSv/6Qzz//9Gdf/O0f/fWvv3r0Nz+L5IAuY9fB86wr+VbfQHBAl7Hr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdUt9bzMAABHuSURBVPA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCtxQA+G7xjAroPnWVfigB4M3zGAXQfPs67EAT0YvmMAuw6eZ12JA3owfMcAdh08z7oSB/Rg+I4B7Dp4nnUlDujB8B0D2HXwPOtKHNCD4TsGsOvgedaVOKAHw3cMYNfB86wrcUAPhu8YwK6D51lX4oAeDN8xgF0Hz7OuxAE9GL5jALsOnmddiQN6MHzHAHYdPM+6Egf0YPiOAew6eJ51JQ7owfAdA9h18DzrShzQg+E7BrDr4HnWlTigB8N3DGDXwfOsK3FAD4bvGMCug+dZV+KAHgzfMYBdB8+zrsQBPRi+YwC7Dp5nXYkDejB8xwB2HTzPuhIH9GD4jgHsOniedSUO6MHwHQPYdfA860oc0IPhOwaw6+B51pU4oAfDdwxg18HzrCv5lgdUkp4xB1SSnqg5oM98Qb///fZz8O+JXQfPs+5b44A+2dQd49h18DzrvjUO6JNN3TGOXQfPs+5bUx3Q5+37328/B/+e2HXwPOtaHNDf3/Id/+3YdfA861oc0N/f8h3/7dh18DzrWhzQ39/yHf/t2HXwPOtaHFBJeiIHVJKeyAGVpCdyQCXpiRxQSXoiB1SSnsgBlaQnckAl6Ykc0Pf77GcfPjz8+S/feOpvf/zDynOT9kjdr/7y4eGDt4Kfp8fyfvJF3l//uvUcJT3+ovn5bz78ASHv7brf/vjhhT/8p9oz9QgH9L1eHu3Nm330gBjQR+p+8dUL6Qd/13uuYh7J+/irvD+eeh18mne8aH72tw+EAX2k7jcfOqDPzkcPP/jl55++8TL52UcPjAF9u+6Thw/+5vMvn7T1Uvo0b+f95sMXeT8hnO/RF80Xf0QQBvSRuk8mr+aAvs9vPnwxJL/98etvkX35XuDkLa/ervvizZeffv7iSV/99Vl75HgfPfzFa7/yrD36ovnVm2mAAX2s7uXxxjig7/Pxy6H8+LXbffFH/I/+GTGgb9f99scvl2XzhfXmseN95evMZ+zxui/+BPzPhI+BPlL32d9OflzJAX2fj16+Ifb6ew8f//HPR9+buHqs7utfev4D+u48wudZHq/76OGHhLjH6n774x/84xfv+/3Z2Oc3HdD3+PoPvTdfKBED+s66t98xfI7enffPHz7/D1A8XvfJF+++Ewb0sbpXn0Mau50D+h7f2QH9GND3rryPHh4++HnnWQp6tO7Fn3vUAf3k4eFHv/78X3829hUiDuh7vHbHb37QjDagb3xI8JOxF9IneUfeZ//tTz98+OC/lJ6pmEfrXnzgBTagX9e9+kN97KNLDuh7fEffAv3kww9+2niGst7zBvavnv/78I/Vffzi8++wAX0r5pOtrzJwQN/juzmgHxPe/nxWr4RP8Ejdbz588ST6gI59DZoD+j7v+kQuYkDfUfcLxn6+94sMACPzdt3L77La+2adJ3g+t3NA3+fVl6G9+aWEjAF9rO6zjxDf5/ilt/NefZ/A2ivhU7xdRxrQ99xu7HXPAX2fd3y7x9oRn+jxb/d49tPyyqPfifTDb/z1GXvXiybhD4f33e7rIR3hgL7PF9f648e+4ZgxoI/UfczZz8fyfvPhl18K8xnhoxTvetFkDOg7b/fpT8ZeQh3Q9/r0tR8K8/KD9F9iDOjbda9+Yhjjm/0fOd4nL3/Y1E/Lz1rAO140GQP6WN3LD1H84da3Ijmg7/fpz7642Z+/eInkDehbdZ88kAb0seN9yvlxp4+/aEIG9J23+9FYnAMqSU/kgErSEzmgkvREDqgkPZEDKklP5IBK0hM5oJL0RA6oJD2RAypJT+SAStITOaCS9EQOqCQ9kQMqSU/kgErSE/0/7GcGTRQ5XBsAAAAASUVORK5CYII=" width="672" /></p>
+<pre class="r"><code>fit_beta_bernoulli %&gt;% as.data.frame -&gt; sim_beta_bernoulli
+ggplot(sim_beta_bernoulli) +
+  geom_histogram(aes(x=theta))</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
+<pre class="r"><code>save.image(&quot;~/stan-tutorial/data/image.RData&quot;)</code></pre>
+</div>
+<div id="markov-chain-monte-carlo" class="section level2">
+<h2>Markov Chain Monte Carlo</h2>
 <p>Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution, f(<span class="math inline">\(\theta\)</span>) and a conditional likelihood g(Y|<span class="math inline">\(\theta\)</span>). The posterior distribution is given by the formula</p>
 <p><span class="math inline">\(h(\theta|Y)=\frac{f(\theta)g(Y|\theta)}{\int{f(\theta)g(Y|\theta)d\theta}}\)</span></p>
 <p>In many Bayesian applications, <span class="math inline">\(\theta\)</span> is a high dimensional vector. For example, in certain longitudinal and hierarchical models, there is one parameter for each subject in your data set. This means that the integral in the denominator is a high dimensional integral. For some settings, most notably when you have a <a href="https://en.wikipedia.org/wiki/Conjugate_prior">conjugate prior distribution</a>, you can calculate this integral directly. But for many interesting Bayesian data analyses, the integral has no closed form. Researchers in the world of Bayesian data analysis used to have to rely on complex numerical integration approaches.</p>
@@ -156,12 +306,809 @@ $(document).ready(function () {
 </div>
 <div id="how-stan-improves-on-jags-and-bugs" class="section level2">
 <h2>How Stan improves on jags and BUGS</h2>
-<p>Stan uses a new approach to simulate a posterior distribution called the Hamiltonian Markov Chain (HMC). The HMC relies on the fact that not only do you know the relative height of the density at <span class="math inline">\(\theta_i\)</span> but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It’s like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here’s <a href="https://www.youtube.com/watch?v=59vKonIy2uU">an illustration of HMC in action</a>.</p>
-<p>The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much better (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.</p>
+<p>On page 2 of Carpenter et al (2017), Stan differes from BUGS and jags in two ways: First, stan uses a “new imperative probabilistic programming” approach compared to the “declarative graphical modeling” approach of BUGS and jags. Second, Stan uses a new approach to simulate a posterior distribution called the Hamiltonian Markov Chain (HMC). Let me tackle the second issue first.</p>
+</div>
+<div id="stan-and-the-hmc" class="section level2">
+<h2>Stan and the HMC</h2>
+<p>The HMC relies on the fact that not only do you know the relative height of the density at <span class="math inline">\(\theta_i\)</span> but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It’s like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here’s <a href="https://www.youtube.com/watch?v=59vKonIy2uU">an illustration of HMC in action</a>.</p>
+<p>The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much improved (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.</p>
+</div>
+<div id="stan-and-the-imperative-probabilistc-programming-approach." class="section level2">
+<h2>Stan and the imperative probabilistc programming approach.</h2>
 <p>I like Stan, however, not for its speed, but for the more logical layout. Both BUGS and jags create a <a href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">directed acyclic graph</a>, and the order of the statements in BUGS and jags is not important.</p>
 <p>In Stan, however, order is important and different types of programming statements belong in different parts of your program.</p>
-<pre class="r"><code>print(1:5)</code></pre>
-<pre><code>## [1] 1 2 3 4 5</code></pre>
+<p>All variables in Stan are static (Carpenter, page 13), meaning that they can’t change from integer to real or from vector to matrix in the middle of the program. You need to be careful when you mix integer and real values. Usually it works, but there are a few exceptions.</p>
+<p>You can store more than one integer or real in a (column) vector, a row vector, a matrix, or an array. Use square brackets for these.</p>
+<p>Stan allows you to place bounds on individual variables (minimum, maximum, or both) and on vectors (Carpenter, page 14). You can also bound vectors to a unit simplex, unit length, ordered, or positive ordered.</p>
+<p>You can constrain matrices to match the same constraints that apply to covariance matrices, correlation matrices, and precision matrices.</p>
+</div>
+<div id="program-blocks" class="section level2">
+<h2>Program blocks</h2>
+<p>Stan has six program blocks: data, transformed data, parameters, transformed parameters, model, and generated quantities.</p>
+</div>
+<div id="data-block" class="section level2">
+<h2>Data block</h2>
+<p>The data block tells Stan what the structure of the data looks like.</p>
+</div>
+<div id="transformed-data-block" class="section level2">
+<h2>Transformed data block</h2>
+<p>This block is optional. It is useful for defining constants, and computing transformations of data values within Stan.</p>
+</div>
+<div id="parameter-block" class="section level2">
+<h2>Parameter block</h2>
+<p>The parameter block defines the structure of parameters in your model. It is very important to put appropriate constraints on parameters here. Stan uses transformations to enforce these constraints. If your parameter is non-negative, Stan will run the HMC on the logarithm of the parameter.</p>
+</div>
+<div id="transformed-parameter-block" class="section level2">
+<h2>Transformed parameter block</h2>
+<p>This block is optional. It allows you to re-express parameters in a different form. For example, if you have two parameters, alpha and beta, for a beta distribution, you might monitor a transformed parameter mu equal to alpha/(alpha+beta). If you create a transformed parameter, and that parameter is assigned a distribution in the model block, then you need to calculate the Jacobian of the transformation and account for that explicitly. See Carpenter, pages 18-19 for an example.</p>
+<p>The rule of thumb is that transformed parameters that appear on the left hand side of the tilde require a Jacobian adjustment, but transformed parameters that appear on the right hand side of the tilde do not require a Jacobian adjustment.</p>
+</div>
+<div id="model-block" class="section level2">
+<h2>Model block</h2>
+<p>The model block is where you assign distribution to your parameters (your prior distributions) and to your data (your conditional likelihood).</p>
+<p>If you do not specify a prior distribution, Stan generates uniform random variables for you. This would be an improper uniform prior from minus infinity to plus infinity for unconstrained parameters. Depending on the constraint, the uniform prior might be proper or improper.</p>
+<p>Neither BUGs nor jags allows improper priors. Stan is okay with improper priors unless they lead to improper posteriors. Be very cautious about improper priors, of course.</p>
+</div>
+<div id="generated-quantities-block" class="section level2">
+<h2>Generated quantities block</h2>
+<p>This block is optional. It allows you to compute posterior predictive values, among other things.</p>
+<pre class="r"><code>f &lt;- &quot;http://www.stat.columbia.edu/~gelman/book/data/rats.asc&quot;
+rats_data &lt;- as.list(read.table(file=f, header=TRUE, skip=3))
+rats_list &lt;- list(
+  y=rats_data$y, 
+  n=rats_data$N,
+  J=length(rats_data$y))
+print(rats_list)</code></pre>
+<pre><code>## $y
+##  [1]  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1  1  1  1  1  1  1  1  3
+## [24]  2  2  2  2  2  2  2  2  2  1  5  2  5  2  7  7  3  3  2  9 10  4  4
+## [47]  4  4  4  4  4 10  4  4  4  5 11 12  5  5  6  5  6  6  6  6 16 15 15
+## [70]  9  4
+## 
+## $n
+##  [1] 20 20 20 20 20 20 20 19 19 19 19 18 18 17 20 20 20 20 19 19 18 18 27
+## [24] 25 24 23 20 20 20 20 20 20 10 49 19 46 17 49 47 20 20 13 48 50 20 20
+## [47] 20 20 20 20 20 48 19 19 19 22 46 49 20 20 23 19 22 20 20 20 52 46 47
+## [70] 24 14
+## 
+## $J
+## [1] 71</code></pre>
+<pre class="r"><code>f &lt;- &quot;~/stan-tutorial/src/hierarchical-binomial.stan&quot;
+cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
+<pre><code>## data {
+##   int&lt;lower=0&gt; J; // number of items
+##   int&lt;lower=0&gt; y[J]; // number of successes for j
+##   int&lt;lower=0&gt; n[J]; // number of trials for j
+## }
+## parameters {
+##   real&lt;lower=0, upper=1&gt; theta[J]; // chance of success for j
+##   real&lt;lower=0, upper=1&gt; lambda;   // prior mean chance of success
+##   real&lt;lower=0.1&gt; kappa;           // prior count
+## }
+## transformed parameters {
+##   real&lt;lower=0&gt; alpha = lambda * kappa; // prior success count
+##   real&lt;lower=0&gt; beta = (1 - lambda) * kappa; // prior failure count
+## }
+## model {
+##   lambda ~ uniform(0, 1); // hyperprior
+##   kappa ~ pareto(0.1, 1.5); // hyperprior
+##   theta ~ beta(alpha, beta); // prior
+##   y ~ binomial(n, theta); // likelihood
+## }
+## generated quantities {
+##   real&lt;lower=0,upper=1&gt; avg = mean(theta); // avg success
+##   int&lt;lower=0, upper=1&gt; above_avg[J]; // true if j is above avg
+##   int&lt;lower=1, upper=J&gt; rnk[J]; // rank of j
+##   int&lt;lower=0, upper=1&gt; highest[J]; // true if j is highest rank
+##   for (j in 1:J) {
+##     above_avg[j] = (theta[j] &gt; avg);
+##     rnk[j] = rank(theta, j) + 1;
+##     highest[j] = (rnk[j] == 1);
+##   }
+## }</code></pre>
+<pre class="r"><code>cat(readLines(f)[1:5], sep=&quot;\n&quot;)</code></pre>
+<pre><code>## data {
+##   int&lt;lower=0&gt; J; // number of items
+##   int&lt;lower=0&gt; y[J]; // number of successes for j
+##   int&lt;lower=0&gt; n[J]; // number of trials for j
+## }</code></pre>
+<pre class="r"><code>rats_fit &lt;- stan(file=f,
+  data=rats_list,
+  iter= 10000, warmup=1000, chains = 4)</code></pre>
+<pre><code>## In file included from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config.hpp:39:0,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/math/tools/config.hpp:13,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core/var.hpp:7,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core.hpp:12,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/mat.hpp:4,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math.hpp:4,
+##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/src/stan/model/model_header.hpp:4,
+##                  from file12ec78144d50.cpp:8:
+## C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
+##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
+##  ^
+## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
+## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;
+## 
+## SAMPLING FOR MODEL 'hierarchical-binomial' NOW (CHAIN 1).
+## 
+## Chain 1, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 1, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 1, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 1, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 1, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 1, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 1, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 1, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 1, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 1, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 1, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 1, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.517 seconds (Warm-up)
+##                5.737 seconds (Sampling)
+##                6.254 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'hierarchical-binomial' NOW (CHAIN 2).
+## 
+## Chain 2, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 2, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 2, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 2, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 2, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 2, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 2, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 2, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 2, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 2, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 2, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 2, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.512 seconds (Warm-up)
+##                4.457 seconds (Sampling)
+##                4.969 seconds (Total)
+## 
+## [1] &quot;The following numerical problems occurred the indicated number of times on chain 2&quot;
+##                                                                                          count
+## Exception thrown at line 18: beta_log: First shape parameter is inf, but must be finite!     1
+## [1] &quot;When a numerical problem occurs, the Hamiltonian proposal gets rejected.&quot;
+## [1] &quot;See http://mc-stan.org/misc/warnings.html#exception-hamiltonian-proposal-rejected&quot;
+## [1] &quot;If the number in the 'count' column is small,  there is no need to ask about this message on stan-users.&quot;
+## 
+## SAMPLING FOR MODEL 'hierarchical-binomial' NOW (CHAIN 3).
+## 
+## Chain 3, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 3, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 3, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 3, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 3, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 3, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 3, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 3, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 3, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 3, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 3, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 3, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.501 seconds (Warm-up)
+##                5.826 seconds (Sampling)
+##                6.327 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'hierarchical-binomial' NOW (CHAIN 4).
+## 
+## Chain 4, Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 4, Iteration: 1000 / 10000 [ 10%]  (Warmup)
+## Chain 4, Iteration: 1001 / 10000 [ 10%]  (Sampling)
+## Chain 4, Iteration: 2000 / 10000 [ 20%]  (Sampling)
+## Chain 4, Iteration: 3000 / 10000 [ 30%]  (Sampling)
+## Chain 4, Iteration: 4000 / 10000 [ 40%]  (Sampling)
+## Chain 4, Iteration: 5000 / 10000 [ 50%]  (Sampling)
+## Chain 4, Iteration: 6000 / 10000 [ 60%]  (Sampling)
+## Chain 4, Iteration: 7000 / 10000 [ 70%]  (Sampling)
+## Chain 4, Iteration: 8000 / 10000 [ 80%]  (Sampling)
+## Chain 4, Iteration: 9000 / 10000 [ 90%]  (Sampling)
+## Chain 4, Iteration: 10000 / 10000 [100%]  (Sampling)
+##  Elapsed Time: 0.478 seconds (Warm-up)
+##                5.855 seconds (Sampling)
+##                6.333 seconds (Total)
+## 
+## [1] &quot;The following numerical problems occurred the indicated number of times on chain 4&quot;
+##                                                                                          count
+## Exception thrown at line 18: beta_log: First shape parameter is inf, but must be finite!     1
+## [1] &quot;When a numerical problem occurs, the Hamiltonian proposal gets rejected.&quot;
+## [1] &quot;See http://mc-stan.org/misc/warnings.html#exception-hamiltonian-proposal-rejected&quot;
+## [1] &quot;If the number in the 'count' column is small,  there is no need to ask about this message on stan-users.&quot;</code></pre>
+<pre class="r"><code>print(rats_fit)</code></pre>
+<pre><code>## Inference for Stan model: hierarchical-binomial.
+## 4 chains, each with iter=10000; warmup=1000; thin=1; 
+## post-warmup draws per chain=9000, total post-warmup draws=36000.
+## 
+##                  mean se_mean    sd    2.5%     25%     50%     75%
+## theta[1]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[2]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[3]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[4]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[5]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[6]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[7]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[8]         0.06    0.00  0.04    0.01    0.03    0.05    0.09
+## theta[9]         0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[10]        0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[11]        0.06    0.00  0.04    0.01    0.03    0.05    0.08
+## theta[12]        0.06    0.00  0.04    0.01    0.03    0.05    0.09
+## theta[13]        0.06    0.00  0.04    0.01    0.03    0.05    0.09
+## theta[14]        0.07    0.00  0.05    0.01    0.03    0.06    0.09
+## theta[15]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[16]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[17]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[18]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[19]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[20]        0.09    0.00  0.05    0.02    0.05    0.08    0.12
+## theta[21]        0.09    0.00  0.05    0.02    0.06    0.09    0.12
+## theta[22]        0.09    0.00  0.05    0.02    0.06    0.09    0.12
+## theta[23]        0.12    0.00  0.05    0.04    0.09    0.12    0.15
+## theta[24]        0.10    0.00  0.05    0.03    0.07    0.10    0.13
+## theta[25]        0.11    0.00  0.05    0.03    0.07    0.10    0.14
+## theta[26]        0.11    0.00  0.05    0.03    0.07    0.10    0.14
+## theta[27]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[28]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[29]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[30]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[31]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[32]        0.12    0.00  0.05    0.03    0.08    0.11    0.15
+## theta[33]        0.13    0.00  0.07    0.03    0.08    0.12    0.17
+## theta[34]        0.11    0.00  0.04    0.05    0.08    0.11    0.14
+## theta[35]        0.12    0.00  0.06    0.03    0.08    0.11    0.16
+## theta[36]        0.12    0.00  0.04    0.05    0.09    0.11    0.14
+## theta[37]        0.13    0.00  0.06    0.04    0.09    0.12    0.17
+## theta[38]        0.14    0.00  0.04    0.07    0.11    0.14    0.17
+## theta[39]        0.15    0.00  0.04    0.07    0.12    0.14    0.18
+## theta[40]        0.15    0.00  0.06    0.05    0.10    0.14    0.18
+## theta[41]        0.15    0.00  0.06    0.05    0.10    0.14    0.18
+## theta[42]        0.15    0.00  0.07    0.04    0.10    0.14    0.19
+## theta[43]        0.18    0.00  0.05    0.09    0.14    0.17    0.21
+## theta[44]        0.19    0.00  0.05    0.10    0.15    0.18    0.22
+## theta[45]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[46]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[47]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[48]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[49]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[50]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[51]        0.18    0.00  0.06    0.07    0.13    0.17    0.22
+## theta[52]        0.19    0.00  0.05    0.11    0.16    0.19    0.22
+## theta[53]        0.18    0.00  0.07    0.07    0.13    0.18    0.22
+## theta[54]        0.18    0.00  0.07    0.07    0.13    0.18    0.22
+## theta[55]        0.18    0.00  0.07    0.07    0.13    0.17    0.22
+## theta[56]        0.19    0.00  0.07    0.08    0.15    0.19    0.24
+## theta[57]        0.22    0.00  0.05    0.12    0.18    0.21    0.25
+## theta[58]        0.22    0.00  0.05    0.13    0.19    0.22    0.26
+## theta[59]        0.21    0.00  0.07    0.09    0.16    0.20    0.25
+## theta[60]        0.21    0.00  0.07    0.09    0.16    0.20    0.25
+## theta[61]        0.22    0.00  0.07    0.10    0.17    0.21    0.26
+## theta[62]        0.21    0.00  0.07    0.09    0.16    0.21    0.26
+## theta[63]        0.22    0.00  0.07    0.11    0.17    0.22    0.27
+## theta[64]        0.24    0.00  0.07    0.11    0.18    0.23    0.28
+## theta[65]        0.24    0.00  0.07    0.11    0.18    0.23    0.28
+## theta[66]        0.23    0.00  0.07    0.11    0.18    0.23    0.28
+## theta[67]        0.27    0.00  0.05    0.17    0.23    0.27    0.31
+## theta[68]        0.28    0.00  0.06    0.18    0.24    0.28    0.32
+## theta[69]        0.28    0.00  0.06    0.17    0.24    0.28    0.32
+## theta[70]        0.29    0.00  0.07    0.16    0.24    0.29    0.34
+## theta[71]        0.22    0.00  0.08    0.09    0.16    0.21    0.26
+## lambda           0.15    0.00  0.01    0.12    0.14    0.14    0.15
+## kappa           14.87    0.06  5.26    7.52   11.22   13.93   17.46
+## alpha            2.15    0.01  0.76    1.10    1.62    2.00    2.51
+## beta            12.72    0.05  4.53    6.36    9.57   11.91   14.98
+## avg              0.14    0.00  0.01    0.13    0.14    0.14    0.15
+## above_avg[1]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[2]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[3]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[4]     0.04    0.00  0.19    0.00    0.00    0.00    0.00
+## above_avg[5]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[6]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[7]     0.04    0.00  0.20    0.00    0.00    0.00    0.00
+## above_avg[8]     0.05    0.00  0.21    0.00    0.00    0.00    0.00
+## above_avg[9]     0.05    0.00  0.21    0.00    0.00    0.00    0.00
+## above_avg[10]    0.05    0.00  0.21    0.00    0.00    0.00    0.00
+## above_avg[11]    0.05    0.00  0.21    0.00    0.00    0.00    0.00
+## above_avg[12]    0.05    0.00  0.23    0.00    0.00    0.00    0.00
+## above_avg[13]    0.05    0.00  0.23    0.00    0.00    0.00    0.00
+## above_avg[14]    0.06    0.00  0.24    0.00    0.00    0.00    0.00
+## above_avg[15]    0.13    0.00  0.34    0.00    0.00    0.00    0.00
+## above_avg[16]    0.13    0.00  0.34    0.00    0.00    0.00    0.00
+## above_avg[17]    0.13    0.00  0.34    0.00    0.00    0.00    0.00
+## above_avg[18]    0.13    0.00  0.34    0.00    0.00    0.00    0.00
+## above_avg[19]    0.15    0.00  0.35    0.00    0.00    0.00    0.00
+## above_avg[20]    0.15    0.00  0.35    0.00    0.00    0.00    0.00
+## above_avg[21]    0.16    0.00  0.37    0.00    0.00    0.00    0.00
+## above_avg[22]    0.16    0.00  0.37    0.00    0.00    0.00    0.00
+## above_avg[23]    0.31    0.00  0.46    0.00    0.00    0.00    1.00
+## above_avg[24]    0.19    0.00  0.39    0.00    0.00    0.00    0.00
+## above_avg[25]    0.21    0.00  0.41    0.00    0.00    0.00    0.00
+## above_avg[26]    0.22    0.00  0.42    0.00    0.00    0.00    0.00
+## above_avg[27]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[28]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[29]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[30]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[31]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[32]    0.29    0.00  0.45    0.00    0.00    0.00    1.00
+## above_avg[33]    0.35    0.00  0.48    0.00    0.00    0.00    1.00
+## above_avg[34]    0.20    0.00  0.40    0.00    0.00    0.00    0.00
+## above_avg[35]    0.31    0.00  0.46    0.00    0.00    0.00    1.00
+## above_avg[36]    0.25    0.00  0.43    0.00    0.00    0.00    0.00
+## above_avg[37]    0.36    0.00  0.48    0.00    0.00    0.00    1.00
+## above_avg[38]    0.46    0.00  0.50    0.00    0.00    0.00    1.00
+## above_avg[39]    0.51    0.00  0.50    0.00    0.00    1.00    1.00
+## above_avg[40]    0.49    0.00  0.50    0.00    0.00    0.00    1.00
+## above_avg[41]    0.48    0.00  0.50    0.00    0.00    0.00    1.00
+## above_avg[42]    0.48    0.00  0.50    0.00    0.00    0.00    1.00
+## above_avg[43]    0.75    0.00  0.43    0.00    1.00    1.00    1.00
+## above_avg[44]    0.82    0.00  0.38    0.00    1.00    1.00    1.00
+## above_avg[45]    0.67    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[46]    0.67    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[47]    0.68    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[48]    0.67    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[49]    0.67    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[50]    0.67    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[51]    0.68    0.00  0.47    0.00    0.00    1.00    1.00
+## above_avg[52]    0.84    0.00  0.36    0.00    1.00    1.00    1.00
+## above_avg[53]    0.70    0.00  0.46    0.00    0.00    1.00    1.00
+## above_avg[54]    0.70    0.00  0.46    0.00    0.00    1.00    1.00
+## above_avg[55]    0.70    0.00  0.46    0.00    0.00    1.00    1.00
+## above_avg[56]    0.77    0.00  0.42    0.00    1.00    1.00    1.00
+## above_avg[57]    0.93    0.00  0.26    0.00    1.00    1.00    1.00
+## above_avg[58]    0.95    0.00  0.22    0.00    1.00    1.00    1.00
+## above_avg[59]    0.82    0.00  0.39    0.00    1.00    1.00    1.00
+## above_avg[60]    0.82    0.00  0.39    0.00    1.00    1.00    1.00
+## above_avg[61]    0.87    0.00  0.33    0.00    1.00    1.00    1.00
+## above_avg[62]    0.84    0.00  0.37    0.00    1.00    1.00    1.00
+## above_avg[63]    0.89    0.00  0.32    0.00    1.00    1.00    1.00
+## above_avg[64]    0.91    0.00  0.28    0.00    1.00    1.00    1.00
+## above_avg[65]    0.91    0.00  0.28    0.00    1.00    1.00    1.00
+## above_avg[66]    0.91    0.00  0.29    0.00    1.00    1.00    1.00
+## above_avg[67]    1.00    0.00  0.06    1.00    1.00    1.00    1.00
+## above_avg[68]    1.00    0.00  0.05    1.00    1.00    1.00    1.00
+## above_avg[69]    1.00    0.00  0.06    1.00    1.00    1.00    1.00
+## above_avg[70]    0.99    0.00  0.11    1.00    1.00    1.00    1.00
+## above_avg[71]    0.83    0.00  0.38    0.00    1.00    1.00    1.00
+## rnk[1]          13.86    0.06 11.79    1.00    5.00   11.00   20.00
+## rnk[2]          13.88    0.06 11.82    1.00    5.00   10.00   20.00
+## rnk[3]          13.84    0.06 11.71    1.00    5.00   11.00   20.00
+## rnk[4]          13.82    0.06 11.63    1.00    5.00   11.00   20.00
+## rnk[5]          13.74    0.06 11.61    1.00    5.00   10.00   20.00
+## rnk[6]          13.82    0.06 11.88    1.00    5.00   10.00   20.00
+## rnk[7]          13.77    0.06 11.76    1.00    5.00   10.00   20.00
+## rnk[8]          14.35    0.06 12.16    1.00    5.00   11.00   20.00
+## rnk[9]          14.33    0.06 12.06    1.00    5.00   11.00   21.00
+## rnk[10]         14.31    0.06 12.07    1.00    5.00   11.00   20.00
+## rnk[11]         14.21    0.06 12.02    1.00    5.00   11.00   20.00
+## rnk[12]         14.92    0.07 12.45    1.00    5.00   11.00   21.00
+## rnk[13]         14.86    0.07 12.42    1.00    5.00   11.00   21.00
+## rnk[14]         15.50    0.07 12.95    1.00    5.00   12.00   22.00
+## rnk[15]         22.32    0.07 14.09    2.00   11.00   20.00   31.00
+## rnk[16]         22.41    0.07 14.18    2.00   11.00   20.00   31.00
+## rnk[17]         22.32    0.07 14.12    2.00   11.00   20.00   31.00
+## rnk[18]         22.46    0.07 14.09    2.00   11.00   20.00   31.00
+## rnk[19]         23.19    0.08 14.45    3.00   12.00   21.00   32.00
+## rnk[20]         23.15    0.08 14.35    3.00   12.00   21.00   32.00
+## rnk[21]         23.98    0.08 14.84    3.00   12.00   22.00   34.00
+## rnk[22]         23.97    0.08 14.78    3.00   12.00   21.00   34.00
+## rnk[23]         32.24    0.08 14.33    7.00   21.00   31.00   42.00
+## rnk[24]         26.73    0.07 14.10    5.00   16.00   25.00   36.00
+## rnk[25]         27.52    0.08 14.25    5.00   16.00   26.00   37.00
+## rnk[26]         28.17    0.08 14.45    5.00   17.00   27.00   38.00
+## rnk[27]         30.84    0.08 15.22    6.00   19.00   29.00   42.00
+## rnk[28]         30.76    0.08 15.15    5.00   19.00   30.00   42.00
+## rnk[29]         30.91    0.08 15.23    6.00   19.00   30.00   42.00
+## rnk[30]         30.94    0.08 15.19    6.00   19.00   30.00   42.00
+## rnk[31]         30.91    0.08 15.10    6.00   19.00   30.00   42.00
+## rnk[32]         30.84    0.08 15.13    6.00   19.00   30.00   42.00
+## rnk[33]         32.50    0.09 17.28    4.00   19.00   31.00   46.00
+## rnk[34]         29.39    0.06 11.99    8.00   21.00   29.00   37.00
+## rnk[35]         31.79    0.08 15.46    6.00   20.00   31.00   43.00
+## rnk[36]         30.95    0.06 12.26    9.00   22.00   30.00   39.00
+## rnk[37]         33.90    0.08 15.89    7.00   22.00   33.00   46.00
+## rnk[38]         38.40    0.06 12.18   15.00   30.00   38.00   47.00
+## rnk[39]         39.67    0.06 12.11   16.00   31.00   40.00   48.00
+## rnk[40]         38.89    0.08 15.17   10.00   27.00   39.00   51.00
+## rnk[41]         38.74    0.08 15.16   10.00   27.00   39.00   50.00
+## rnk[42]         38.68    0.09 16.45    9.00   26.00   39.00   52.00
+## rnk[43]         47.25    0.06 11.42   23.00   40.00   48.00   56.00
+## rnk[44]         49.60    0.06 10.91   26.00   42.00   50.00   58.00
+## rnk[45]         45.84    0.08 14.48   16.00   36.00   47.00   57.00
+## rnk[46]         45.98    0.08 14.40   16.00   36.00   47.00   57.00
+## rnk[47]         45.89    0.08 14.45   16.00   36.00   47.00   57.00
+## rnk[48]         45.91    0.08 14.46   16.00   36.00   47.00   57.00
+## rnk[49]         45.94    0.08 14.40   17.00   36.00   47.00   57.00
+## rnk[50]         45.94    0.08 14.48   16.00   36.00   47.00   57.00
+## rnk[51]         45.96    0.08 14.51   16.00   36.00   47.00   57.00
+## rnk[52]         50.77    0.06 10.81   27.00   44.00   52.00   59.00
+## rnk[53]         47.12    0.08 14.41   17.00   37.00   49.00   59.00
+## rnk[54]         47.06    0.08 14.36   17.00   37.00   48.00   59.00
+## rnk[55]         46.98    0.08 14.46   17.00   37.00   48.00   59.00
+## rnk[56]         49.93    0.07 13.52   20.00   41.00   52.00   61.00
+## rnk[57]         55.43    0.05  9.86   33.00   49.00   57.00   63.00
+## rnk[58]         56.47    0.05  9.31   35.00   51.00   58.00   64.00
+## rnk[59]         52.07    0.07 13.23   22.00   43.00   54.00   63.00
+## rnk[60]         52.01    0.07 13.21   22.00   43.00   54.00   63.00
+## rnk[61]         54.25    0.06 12.08   26.00   47.00   57.00   64.00
+## rnk[62]         53.13    0.07 13.01   24.00   45.00   55.00   64.00
+## rnk[63]         55.20    0.06 11.92   27.00   48.00   57.00   65.00
+## rnk[64]         57.10    0.06 11.51   29.00   50.00   60.00   66.00
+## rnk[65]         57.17    0.06 11.55   29.00   50.00   60.00   66.00
+## rnk[66]         57.07    0.06 11.55   29.00   50.00   60.00   66.00
+## rnk[67]         63.76    0.03  6.36   47.00   61.00   65.00   69.00
+## rnk[68]         64.65    0.03  6.12   49.00   62.00   66.00   69.00
+## rnk[69]         64.27    0.03  6.30   48.00   61.00   66.00   69.00
+## rnk[70]         64.33    0.04  7.55   44.00   61.00   67.00   70.00
+## rnk[71]         53.15    0.07 13.76   22.00   44.00   56.00   64.00
+## highest[1]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[2]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[3]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[4]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[5]       0.06    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[6]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[7]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[8]       0.07    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[9]       0.06    0.00  0.24    0.00    0.00    0.00    0.00
+## highest[10]      0.06    0.00  0.24    0.00    0.00    0.00    0.00
+## highest[11]      0.06    0.00  0.25    0.00    0.00    0.00    0.00
+## highest[12]      0.06    0.00  0.24    0.00    0.00    0.00    0.00
+## highest[13]      0.06    0.00  0.24    0.00    0.00    0.00    0.00
+## highest[14]      0.05    0.00  0.23    0.00    0.00    0.00    0.00
+## highest[15]      0.01    0.00  0.11    0.00    0.00    0.00    0.00
+## highest[16]      0.01    0.00  0.10    0.00    0.00    0.00    0.00
+## highest[17]      0.01    0.00  0.11    0.00    0.00    0.00    0.00
+## highest[18]      0.01    0.00  0.10    0.00    0.00    0.00    0.00
+## highest[19]      0.01    0.00  0.10    0.00    0.00    0.00    0.00
+## highest[20]      0.01    0.00  0.10    0.00    0.00    0.00    0.00
+## highest[21]      0.01    0.00  0.09    0.00    0.00    0.00    0.00
+## highest[22]      0.01    0.00  0.09    0.00    0.00    0.00    0.00
+## highest[23]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[24]      0.00    0.00  0.05    0.00    0.00    0.00    0.00
+## highest[25]      0.00    0.00  0.05    0.00    0.00    0.00    0.00
+## highest[26]      0.00    0.00  0.05    0.00    0.00    0.00    0.00
+## highest[27]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[28]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[29]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[30]      0.00    0.00  0.05    0.00    0.00    0.00    0.00
+## highest[31]      0.00    0.00  0.05    0.00    0.00    0.00    0.00
+## highest[32]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[33]      0.00    0.00  0.06    0.00    0.00    0.00    0.00
+## highest[34]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[35]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[36]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[37]      0.00    0.00  0.04    0.00    0.00    0.00    0.00
+## highest[38]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[39]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[40]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[41]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[42]      0.00    0.00  0.02    0.00    0.00    0.00    0.00
+## highest[43]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[44]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[45]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[46]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[47]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[48]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[49]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[50]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[51]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[52]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[53]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[54]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[55]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[56]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[57]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[58]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[59]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## highest[60]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[61]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[62]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[63]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[64]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[65]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[66]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[67]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[68]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[69]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[70]      0.00    0.00  0.00    0.00    0.00    0.00    0.00
+## highest[71]      0.00    0.00  0.01    0.00    0.00    0.00    0.00
+## lp__          -790.81    0.12  9.07 -809.01 -796.79 -790.63 -784.68
+##                 97.5% n_eff Rhat
+## theta[1]         0.16 36000    1
+## theta[2]         0.16 36000    1
+## theta[3]         0.16 36000    1
+## theta[4]         0.16 36000    1
+## theta[5]         0.16 36000    1
+## theta[6]         0.16 36000    1
+## theta[7]         0.16 36000    1
+## theta[8]         0.17 36000    1
+## theta[9]         0.16 36000    1
+## theta[10]        0.16 36000    1
+## theta[11]        0.16 36000    1
+## theta[12]        0.17 36000    1
+## theta[13]        0.17 36000    1
+## theta[14]        0.18 36000    1
+## theta[15]        0.20 36000    1
+## theta[16]        0.20 36000    1
+## theta[17]        0.20 36000    1
+## theta[18]        0.20 36000    1
+## theta[19]        0.21 36000    1
+## theta[20]        0.21 36000    1
+## theta[21]        0.22 36000    1
+## theta[22]        0.22 36000    1
+## theta[23]        0.24 36000    1
+## theta[24]        0.22 36000    1
+## theta[25]        0.22 36000    1
+## theta[26]        0.22 36000    1
+## theta[27]        0.25 36000    1
+## theta[28]        0.24 36000    1
+## theta[29]        0.24 36000    1
+## theta[30]        0.24 36000    1
+## theta[31]        0.24 36000    1
+## theta[32]        0.24 36000    1
+## theta[33]        0.28 36000    1
+## theta[34]        0.20 36000    1
+## theta[35]        0.25 36000    1
+## theta[36]        0.21 36000    1
+## theta[37]        0.27 36000    1
+## theta[38]        0.24 36000    1
+## theta[39]        0.25 36000    1
+## theta[40]        0.28 36000    1
+## theta[41]        0.28 36000    1
+## theta[42]        0.30 36000    1
+## theta[43]        0.28 36000    1
+## theta[44]        0.29 36000    1
+## theta[45]        0.32 36000    1
+## theta[46]        0.32 36000    1
+## theta[47]        0.32 36000    1
+## theta[48]        0.32 36000    1
+## theta[49]        0.32 36000    1
+## theta[50]        0.32 36000    1
+## theta[51]        0.32 36000    1
+## theta[52]        0.30 36000    1
+## theta[53]        0.33 36000    1
+## theta[54]        0.33 36000    1
+## theta[55]        0.33 36000    1
+## theta[56]        0.34 36000    1
+## theta[57]        0.33 36000    1
+## theta[58]        0.33 36000    1
+## theta[59]        0.36 36000    1
+## theta[60]        0.36 36000    1
+## theta[61]        0.36 36000    1
+## theta[62]        0.37 36000    1
+## theta[63]        0.37 36000    1
+## theta[64]        0.39 36000    1
+## theta[65]        0.40 36000    1
+## theta[66]        0.39 36000    1
+## theta[67]        0.39 36000    1
+## theta[68]        0.40 36000    1
+## theta[69]        0.40 36000    1
+## theta[70]        0.45 36000    1
+## theta[71]        0.38 36000    1
+## lambda           0.17 36000    1
+## kappa           27.61  7277    1
+## alpha            4.01  6867    1
+## beta            23.72  7429    1
+## avg              0.16 28039    1
+## above_avg[1]     1.00 29375    1
+## above_avg[2]     1.00 27901    1
+## above_avg[3]     1.00 30354    1
+## above_avg[4]     1.00 31311    1
+## above_avg[5]     1.00 30420    1
+## above_avg[6]     1.00 36000    1
+## above_avg[7]     1.00 30548    1
+## above_avg[8]     1.00 29012    1
+## above_avg[9]     1.00 29360    1
+## above_avg[10]    1.00 30801    1
+## above_avg[11]    1.00 30338    1
+## above_avg[12]    1.00 30933    1
+## above_avg[13]    1.00 36000    1
+## above_avg[14]    1.00 36000    1
+## above_avg[15]    1.00 36000    1
+## above_avg[16]    1.00 36000    1
+## above_avg[17]    1.00 36000    1
+## above_avg[18]    1.00 36000    1
+## above_avg[19]    1.00 36000    1
+## above_avg[20]    1.00 36000    1
+## above_avg[21]    1.00 36000    1
+## above_avg[22]    1.00 36000    1
+## above_avg[23]    1.00 36000    1
+## above_avg[24]    1.00 36000    1
+## above_avg[25]    1.00 36000    1
+## above_avg[26]    1.00 36000    1
+## above_avg[27]    1.00 36000    1
+## above_avg[28]    1.00 36000    1
+## above_avg[29]    1.00 36000    1
+## above_avg[30]    1.00 36000    1
+## above_avg[31]    1.00 36000    1
+## above_avg[32]    1.00 36000    1
+## above_avg[33]    1.00 36000    1
+## above_avg[34]    1.00 36000    1
+## above_avg[35]    1.00 36000    1
+## above_avg[36]    1.00 36000    1
+## above_avg[37]    1.00 36000    1
+## above_avg[38]    1.00 36000    1
+## above_avg[39]    1.00 36000    1
+## above_avg[40]    1.00 36000    1
+## above_avg[41]    1.00 36000    1
+## above_avg[42]    1.00 36000    1
+## above_avg[43]    1.00 29108    1
+## above_avg[44]    1.00 27274    1
+## above_avg[45]    1.00 36000    1
+## above_avg[46]    1.00 36000    1
+## above_avg[47]    1.00 36000    1
+## above_avg[48]    1.00 36000    1
+## above_avg[49]    1.00 36000    1
+## above_avg[50]    1.00 36000    1
+## above_avg[51]    1.00 36000    1
+## above_avg[52]    1.00 27041    1
+## above_avg[53]    1.00 36000    1
+## above_avg[54]    1.00 36000    1
+## above_avg[55]    1.00 36000    1
+## above_avg[56]    1.00 28035    1
+## above_avg[57]    1.00 24203    1
+## above_avg[58]    1.00 24033    1
+## above_avg[59]    1.00 27102    1
+## above_avg[60]    1.00 26073    1
+## above_avg[61]    1.00 25642    1
+## above_avg[62]    1.00 27040    1
+## above_avg[63]    1.00 25495    1
+## above_avg[64]    1.00 24497    1
+## above_avg[65]    1.00 25524    1
+## above_avg[66]    1.00 24117    1
+## above_avg[67]    1.00 26565    1
+## above_avg[68]    1.00 29051    1
+## above_avg[69]    1.00 27263    1
+## above_avg[70]    1.00 30031    1
+## above_avg[71]    1.00 25944    1
+## rnk[1]          44.00 36000    1
+## rnk[2]          44.00 36000    1
+## rnk[3]          44.00 36000    1
+## rnk[4]          44.00 36000    1
+## rnk[5]          44.00 36000    1
+## rnk[6]          45.00 36000    1
+## rnk[7]          45.00 36000    1
+## rnk[8]          46.00 36000    1
+## rnk[9]          45.00 36000    1
+## rnk[10]         45.00 36000    1
+## rnk[11]         45.00 36000    1
+## rnk[12]         47.00 36000    1
+## rnk[13]         47.00 36000    1
+## rnk[14]         49.00 36000    1
+## rnk[15]         55.00 36000    1
+## rnk[16]         55.00 36000    1
+## rnk[17]         55.00 36000    1
+## rnk[18]         55.00 36000    1
+## rnk[19]         56.00 36000    1
+## rnk[20]         56.00 36000    1
+## rnk[21]         58.00 36000    1
+## rnk[22]         57.00 36000    1
+## rnk[23]         61.00 36000    1
+## rnk[24]         57.00 36000    1
+## rnk[25]         58.00 36000    1
+## rnk[26]         59.00 36000    1
+## rnk[27]         62.00 36000    1
+## rnk[28]         62.00 36000    1
+## rnk[29]         62.00 36000    1
+## rnk[30]         62.00 36000    1
+## rnk[31]         62.00 36000    1
+## rnk[32]         62.00 36000    1
+## rnk[33]         66.00 36000    1
+## rnk[34]         55.00 36000    1
+## rnk[35]         63.00 36000    1
+## rnk[36]         56.00 36000    1
+## rnk[37]         65.00 36000    1
+## rnk[38]         62.00 36000    1
+## rnk[39]         62.00 36000    1
+## rnk[40]         66.00 36000    1
+## rnk[41]         66.00 36000    1
+## rnk[42]         68.00 36000    1
+## rnk[43]         67.00 36000    1
+## rnk[44]         68.00 36000    1
+## rnk[45]         69.00 36000    1
+## rnk[46]         69.00 36000    1
+## rnk[47]         69.00 36000    1
+## rnk[48]         69.00 36000    1
+## rnk[49]         69.00 36000    1
+## rnk[50]         69.00 36000    1
+## rnk[51]         69.00 36000    1
+## rnk[52]         68.00 36000    1
+## rnk[53]         70.00 36000    1
+## rnk[54]         70.00 36000    1
+## rnk[55]         70.00 36000    1
+## rnk[56]         70.00 36000    1
+## rnk[57]         70.00 36000    1
+## rnk[58]         70.00 36000    1
+## rnk[59]         70.00 36000    1
+## rnk[60]         70.00 36000    1
+## rnk[61]         71.00 36000    1
+## rnk[62]         71.00 36000    1
+## rnk[63]         71.00 36000    1
+## rnk[64]         71.00 36000    1
+## rnk[65]         71.00 36000    1
+## rnk[66]         71.00 36000    1
+## rnk[67]         71.00 36000    1
+## rnk[68]         71.00 36000    1
+## rnk[69]         71.00 36000    1
+## rnk[70]         71.00 36000    1
+## rnk[71]         71.00 36000    1
+## highest[1]       1.00 24239    1
+## highest[2]       1.00 22516    1
+## highest[3]       1.00 22983    1
+## highest[4]       1.00 22922    1
+## highest[5]       1.00 22698    1
+## highest[6]       1.00 24564    1
+## highest[7]       1.00 23792    1
+## highest[8]       1.00 22583    1
+## highest[9]       1.00 23315    1
+## highest[10]      1.00 23044    1
+## highest[11]      1.00 22003    1
+## highest[12]      1.00 23159    1
+## highest[13]      1.00 23585    1
+## highest[14]      1.00 22044    1
+## highest[15]      0.00 24229    1
+## highest[16]      0.00 25217    1
+## highest[17]      0.00 25144    1
+## highest[18]      0.00 26585    1
+## highest[19]      0.00 26855    1
+## highest[20]      0.00 25318    1
+## highest[21]      0.00 26033    1
+## highest[22]      0.00 25853    1
+## highest[23]      0.00 22050    1
+## highest[24]      0.00 30795    1
+## highest[25]      0.00 26632    1
+## highest[26]      0.00 29485    1
+## highest[27]      0.00 28017    1
+## highest[28]      0.00 30266    1
+## highest[29]      0.00 27649    1
+## highest[30]      0.00 25441    1
+## highest[31]      0.00 24260    1
+## highest[32]      0.00 30162    1
+## highest[33]      0.00 24645    1
+## highest[34]      0.00 29470    1
+## highest[35]      0.00 34767    1
+## highest[36]      0.00 36000    1
+## highest[37]      0.00 22069    1
+## highest[38]      0.00 36000  NaN
+## highest[39]      0.00 36000  NaN
+## highest[40]      0.00 26413    1
+## highest[41]      0.00 36000    1
+## highest[42]      0.00 32432    1
+## highest[43]      0.00 36000  NaN
+## highest[44]      0.00 36000  NaN
+## highest[45]      0.00 36000    1
+## highest[46]      0.00 36000  NaN
+## highest[47]      0.00 36000    1
+## highest[48]      0.00 36000  NaN
+## highest[49]      0.00 36000    1
+## highest[50]      0.00 36000    1
+## highest[51]      0.00 36000    1
+## highest[52]      0.00 36000  NaN
+## highest[53]      0.00 36000    1
+## highest[54]      0.00 36000    1
+## highest[55]      0.00 36000    1
+## highest[56]      0.00 36000  NaN
+## highest[57]      0.00 36000  NaN
+## highest[58]      0.00 36000  NaN
+## highest[59]      0.00 36000    1
+## highest[60]      0.00 36000  NaN
+## highest[61]      0.00 36000  NaN
+## highest[62]      0.00 36000  NaN
+## highest[63]      0.00 36000  NaN
+## highest[64]      0.00 36000  NaN
+## highest[65]      0.00 36000  NaN
+## highest[66]      0.00 36000  NaN
+## highest[67]      0.00 36000  NaN
+## highest[68]      0.00 36000  NaN
+## highest[69]      0.00 36000  NaN
+## highest[70]      0.00 36000  NaN
+## highest[71]      0.00 36000    1
+## lp__          -773.38  6125    1
+## 
+## Samples were drawn using NUTS(diag_e) at Fri Dec 08 11:40:12 2017.
+## For each parameter, n_eff is a crude measure of effective sample size,
+## and Rhat is the potential scale reduction factor on split chains (at 
+## convergence, Rhat=1).</code></pre>
 </div>
 
 

@@ -17,7 +17,7 @@ You can find other resources for Stan at http://mc-stan.org/.
 
 You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.
 
-As described in footnote 2 on page 3 of Carpenter (2107), RStan takes code written in Stan, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
+As described in footnote 2 on page 3 of Carpenter (2107), Stan takes code written in its own language, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
 
 In particular, you need a toolchain (a set of programming tools that help with the compiling and running of C++ code within R). The folks at Stan recommend RTools for Windows users. For the Mac, they recommend that you use "an official Xcode release from Apple."  Linux usually has all the pieces you need ("use your package manager to install build-essential and a recent version of either g++ or clang++. The package libssl-dev (up to version 1.0; version 1.1 brakes package PKI) is required as well."). 
 
@@ -27,9 +27,40 @@ Stan can easily run in parallel and can take advantage of the multiple cores ava
 
 ## Stan, a very simple example
 
+If you ever want to tinker with BUGS, jags, or Stan, you should start with the easiest example possible, a beta-binomial model. The example found on page 3 of Carpenter (2017) is just slightly more complicated because it has a vector of Bernoulli observations rather than a single binomial observation.
 
+You need to store the Stan code in a file.
 
-## Markov Chain Moten Carlo
+```{r show-beta-bernoulli-code}
+f <- "beta-bernoulli.stan"
+cat(readLines(f), sep="\n")
+```
+
+Although you can specify your data in Stan itself, you would normally find it easier to store your data in a list.
+
+```{r show-beta-bernoulli-data}
+N <- 10
+y <- c(0, 1, 0, 0, 0, 0, 0, 0, 0, 1)
+data_beta_bernoulli <- list(N=N, y=y)
+```
+
+Then you tell R where data and the code live 
+
+```{r run-beta-bernoulli-analysis}
+library(ggplot2)
+library(magrittr)
+library(rstan)
+fit_beta_bernoulli <- stan(file=f,
+  data=data_beta_bernoulli, iter= 10000, warmup=1000, chains = 4)
+print(fit_beta_bernoulli)
+plot(fit_beta_bernoulli)
+fit_beta_bernoulli %>% as.data.frame -> sim_beta_bernoulli
+ggplot(sim_beta_bernoulli) +
+  geom_histogram(aes(x=theta))
+save.image("~/stan-tutorial/data/image.RData")
+```
+
+## Markov Chain Monte Carlo
 
 Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution, f($\theta$) and a conditional likelihood g(Y|$\theta$). The posterior distribution is given by the formula
 
@@ -71,8 +102,70 @@ I like Stan, however, not for its speed, but for the more logical layout. Both B
 
 In Stan, however, order is important and different types of programming statements belong in different parts of your program.
 
-All variables in Stan are static, meaning that they can't change from integer to real or from vector to matrix in the middle of the program. You need to be careful when you mix integer and real values. Usually it works, but there are a few exceptions.
+All variables in Stan are static (Carpenter, page 13), meaning that they can't change from integer to real or from vector to matrix in the middle of the program.
+
+You need to be careful when you mix integer and real values. Usually it works, but there are a few exceptions.
+
+You can store more than one integer or real in a (column) vector, a row vector, a matrix, or an array. Use square brackets for these.
+
+Stan allows you to place bounds on individual variables (minimum, maximum, or both) and on vectors (Carpenter, page 14). You can also bound vectors to a unit simplex, unit length, ordered, or positive ordered.
+
+You can constrain matrices to match the same constraints that apply to covariance matrices, correlation matrices, and precision matrices.
+
+## Program blocks
+
+Stan has six program blocks: data, transformed data, parameters, transformed parameters, model, and generated quantities.
+
+## Data block
+
+The data block tells Stan what the structure of the data looks like. Here's an example of a data block.
+
+```{r show-data-block}
+f <- "~/stan-tutorial/src/hierarchical-binomial.stan"
+cat(readLines(f)[1:5], sep="\n")
+```
+
+## Transformed data block
+
+This block is optional. It is useful for defining constants, and computing transformations of data values within Stan.
+
+## Parameter block
+
+The parameter block defines the structure of parameters in your model. It is very important to put appropriate constraints on parameters here. Stan uses transformations to enforce these constraints. If your parameter is non-negative, Stan will run the HMC on the logarithm of the parameter.
+
+## Transformed parameter block
+
+This block is optional. It allows you to re-express parameters in a different form. For example, if you have two parameters, alpha and beta, for a beta distribution, you might monitor a transformed parameter mu equal to alpha/(alpha+beta). If you create a transformed parameter, and that parameter is assigned a distribution in the model block, then you need to calculate the Jacobian of the transformation and account for that explicitly. See Carpenter, pages 18-19 for an example.
+
+The rule of thumb is that transformed parameters that appear on the left hand side of the tilde require a Jacobian adjustment, but transformed parameters that appear on the right hand side of the tilde do not require a Jacobian adjustment.
+
+## Model block
+
+The model block is where you assign distribution to your parameters (your prior distributions) and to your data (your conditional likelihood).
+
+If you do not specify a prior distribution, Stan generates uniform random variables for you. This would be an improper uniform prior from minus infinity to plus infinity for unconstrained parameters. Depending on the constraint, the uniform prior might be proper or improper.
+
+Neither BUGs nor jags allows improper priors. Stan is okay with improper priors unless they lead to improper posteriors. Be very cautious about improper priors, of course.
+
+## Generated quantities block
+
+This block is optional. It allows you to compute posterior predictive values, among other things.
+
+
 
 ```{r test}
-print(1:5)
+f <- "http://www.stat.columbia.edu/~gelman/book/data/rats.asc"
+rats_data <- as.list(read.table(file=f, header=TRUE, skip=3))
+rats_list <- list(
+  y=rats_data$y, 
+  n=rats_data$N,
+  J=length(rats_data$y))
+print(rats_list)
+f <- "~/stan-tutorial/src/hierarchical-binomial.stan"
+cat(readLines(f), sep="\n")
+cat(readLines(f)[1:5], sep="\n")
+rats_fit <- stan(file=f,
+  data=rats_list,
+  iter= 10000, warmup=1000, chains = 4)
+print(rats_fit)
 ```

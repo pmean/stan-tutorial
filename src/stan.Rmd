@@ -176,7 +176,7 @@ Here is the model block for the hierarchical binomial model.
 ```{r show-model-block, echo=FALSE}
 model_block <-
    grep("^model", stan_code):
-  (grep("^generated quantitites", stan_code)-1)
+  (grep("^generated quantities", stan_code)-1)
 cat(stan_code[model_block], sep="\n")
 ```
 
@@ -188,7 +188,7 @@ Here is the generated quantities block from the hierarchical binomial model.
 
 ```{r show-generated-quantities-block, echo=FALSE}
 generated_quantities_block <-
-   grep("^generated quantitites", stan_code):
+   grep("^generated quantities", stan_code):
    length(stan_code)
 cat(stan_code[generated_quantities_block], sep="\n")
 ```

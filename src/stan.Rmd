@@ -120,24 +120,48 @@ Stan has six program blocks: data, transformed data, parameters, transformed par
 
 The data block tells Stan what the structure of the data looks like. Here's an example of a data block.
 
-```{r show-data-block}
+```{r show-data-block, echo=FALSE}
 f <- "~/stan-tutorial/src/hierarchical-binomial.stan"
-cat(readLines(f)[1:5], sep="\n")
+stan_code <- readLines(f)
+start_data_block <- 
+data_block <-
+  grep("^data", stan_code):(grep("^parameters", stan_code)-1)
+cat(stan_code[data_block], sep="\n")
 ```
 
 ## Transformed data block
 
-This block is optional. It is useful for defining constants, and computing transformations of data values within Stan.
+This block is optional. It is useful for defining constants, and computing transformations of data values within Stan. If you are running Stan within R, it may be just as easy to add the transformed data to the list that you pass to Stan.
+
+The particular example I am using does not have a transformed data block.
 
 ## Parameter block
 
 The parameter block defines the structure of parameters in your model. It is very important to put appropriate constraints on parameters here. Stan uses transformations to enforce these constraints. If your parameter is non-negative, Stan will run the HMC on the logarithm of the parameter.
+
+Here is the parameters block for the hierarchical binomial model.
+
+```{r show-parameters-block, echo=FALSE}
+parameter_block <-
+   grep("^parameters", stan_code):
+  (grep("^transformed parameters", stan_code)-1)
+cat(stan_code[parameter_block], sep="\n")
+```
 
 ## Transformed parameter block
 
 This block is optional. It allows you to re-express parameters in a different form. For example, if you have two parameters, alpha and beta, for a beta distribution, you might monitor a transformed parameter mu equal to alpha/(alpha+beta). If you create a transformed parameter, and that parameter is assigned a distribution in the model block, then you need to calculate the Jacobian of the transformation and account for that explicitly. See Carpenter, pages 18-19 for an example.
 
 The rule of thumb is that transformed parameters that appear on the left hand side of the tilde require a Jacobian adjustment, but transformed parameters that appear on the right hand side of the tilde do not require a Jacobian adjustment.
+
+Here is the transformed parameters block for the hierarchical binomial model.
+
+```{r show-transformed-parameters-block, echo=FALSE}
+transformed_parameter_block <-
+   grep("^transformed parameters", stan_code):
+  (grep("^model", stan_code)-1)
+cat(stan_code[transformed_parameter_block], sep="\n")
+```
 
 ## Model block
 
@@ -147,13 +171,35 @@ If you do not specify a prior distribution, Stan generates uniform random variab
 
 Neither BUGs nor jags allows improper priors. Stan is okay with improper priors unless they lead to improper posteriors. Be very cautious about improper priors, of course.
 
+Here is the model block for the hierarchical binomial model.
+
+```{r show-model-block, echo=FALSE}
+model_block <-
+   grep("^model", stan_code):
+  (grep("^generated quantitites", stan_code)-1)
+cat(stan_code[model_block], sep="\n")
+```
+
 ## Generated quantities block
 
 This block is optional. It allows you to compute posterior predictive values, among other things.
 
+Here is the generated quantities block from the hierarchical binomial model.
 
+```{r show-generated-quantities-block, echo=FALSE}
+generated_quantities_block <-
+   grep("^generated quantitites", stan_code):
+   length(stan_code)
+cat(stan_code[generated_quantities_block], sep="\n")
+```
 
-```{r test}
+There are 71 separate studies and you might be interested in how the estimated success rate in each individual study compares to all the other studies. The code in this block calculates the how often the estimated success rate in each individual study is above the average success rate of all the studies, the rank of the success rate in each individual study, and how ofthe the estimated success rate for each individual study is highest among all the studies.
+
+This is an excellent example of how institutional report cards could be compared.
+
+## Running the hierarchical binomial model
+
+```{r show_rats_list}
 f <- "http://www.stat.columbia.edu/~gelman/book/data/rats.asc"
 rats_data <- as.list(read.table(file=f, header=TRUE, skip=3))
 rats_list <- list(
@@ -161,9 +207,14 @@ rats_list <- list(
   n=rats_data$N,
   J=length(rats_data$y))
 print(rats_list)
+```
+
+```{r show_rats_code}
 f <- "~/stan-tutorial/src/hierarchical-binomial.stan"
 cat(readLines(f), sep="\n")
-cat(readLines(f)[1:5], sep="\n")
+```
+
+```{r run_rats_analysis}
 rats_fit <- stan(file=f,
   data=rats_list,
   iter= 10000, warmup=1000, chains = 4)

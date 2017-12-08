@@ -47,9 +47,15 @@ data_beta_bernoulli <- list(N=N, y=y)
 Then you tell R where data and the code live 
 
 ```{r run-beta-bernoulli-analysis}
+library(dplyr)
 library(ggplot2)
 library(magrittr)
 library(rstan)
+library(tidyr)
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
 fit_beta_bernoulli <- stan(file=f,
   data=data_beta_bernoulli, iter= 10000, warmup=1000, chains = 4)
 print(fit_beta_bernoulli)
@@ -57,7 +63,6 @@ plot(fit_beta_bernoulli)
 fit_beta_bernoulli %>% as.data.frame -> sim_beta_bernoulli
 ggplot(sim_beta_bernoulli) +
   geom_histogram(aes(x=theta))
-save.image("~/stan-tutorial/data/image.RData")
 ```
 
 ## Markov Chain Monte Carlo
@@ -199,7 +204,9 @@ This is an excellent example of how institutional report cards could be compared
 
 ## Running the hierarchical binomial model
 
-```{r show_rats_list}
+The data for the hierarchical binomial model is on the Internet, but you have to skip the first three lines of the file. Also, the file is imported, by default, as a data frame. Stan is expecting data in a list instead. Note also the inconsistent capitalization of N/n that needs to be fixed.
+
+```{r show-rats-list}
 f <- "http://www.stat.columbia.edu/~gelman/book/data/rats.asc"
 rats_data <- as.list(read.table(file=f, header=TRUE, skip=3))
 rats_list <- list(
@@ -209,14 +216,78 @@ rats_list <- list(
 print(rats_list)
 ```
 
-```{r show_rats_code}
+You've seen the individual pieces of the Stan code, but here is everything in one spot.
+
+```{r show-rats-code, echo=FALSE}
 f <- "~/stan-tutorial/src/hierarchical-binomial.stan"
 cat(readLines(f), sep="\n")
 ```
 
-```{r run_rats_analysis}
+The analysis is a lot messier, but the call to Stan from within R is pretty much the same. You just tell Stan where the data lives and where the code lives.
+
+```{r run-rats-analysis}
 rats_fit <- stan(file=f,
   data=rats_list,
   iter= 10000, warmup=1000, chains = 4)
+```
+
+The output from Stan is quite long and messy.
+
+```{r print-rats-analysis}
 print(rats_fit)
+```
+
+Some graphs might help.
+
+```{r plot-rats-analysis}
+rats_sim <- as.data.frame(rats_fit)
+rats_sim %>%
+  select(starts_with("theta")) %>%
+  gather(study, theta) -> df
+df$study %<>%
+  sub("theta\\[", "", .) %>%
+  sub("\\]", "", .) %>%
+  as.numeric %>%
+  factor
+ggplot(df, aes(x=study, y=theta)) +
+  geom_boxplot() +
+  coord_flip()
+```
+
+You can see in the graph above that some studies have a success rate around 5% and some have success rates as high as 20%.
+
+```{r more-plots}
+rats_sim %>%
+  select(starts_with("above_avg")) %>%
+  gather(study, above_avg)  %>%
+  group_by(study) %>%
+  summarize(prob_above_avg=mean(above_avg)) %>%
+  ungroup -> df
+df$study %<>%
+  sub("above_avg\\[", "", .) %>%
+  sub("\\]", "", .) %>%
+  as.numeric
+ggplot(df, aes(x=study, y=prob_above_avg)) +
+  geom_point() +
+  coord_flip()
+
+rats_sim %>%
+  select(starts_with("highest")) %>%
+  gather(study, highest)  %>%
+  group_by(study) %>%
+  summarize(prob_highest=mean(highest)) %>%
+  ungroup -> df
+df$study %<>%
+  sub("highest\\[", "", .) %>%
+  sub("\\]", "", .) %>%
+  as.numeric
+ggplot(df, aes(x=study, y=prob_highest)) +
+  geom_point() +
+  coord_flip()
+```
+
+Save everything for possible later re-use.
+
+```{r save-everything}
+save.image("~/stan-tutorial/data/image.RData")
 ```

@@ -5,6 +5,14 @@ date: "December 1, 2017"
 output: html_document
 ---
 
+```{r render-this-file, echo=FALSE, eval=FALSE}
+# To save the output in the proper subdirectory,
+# save this file and run the two commands below.
+library(rmarkdown)
+render("~/stan-tutorial/src/stan.Rmd",
+  output_dir="~/stan-tutorial/results")
+```
+
 ## Introduction
 
 This program shows a few features of Stan, a program to conduct Bayesian data analyses. A detailed overview of the design of Stan appears in
@@ -62,7 +70,7 @@ print(fit_beta_bernoulli)
 plot(fit_beta_bernoulli)
 fit_beta_bernoulli %>% as.data.frame -> sim_beta_bernoulli
 ggplot(sim_beta_bernoulli) +
-  geom_histogram(aes(x=theta))
+  geom_histogram(aes(x=theta), fill="white", color="black")
 ```
 
 ## Markov Chain Monte Carlo
@@ -208,12 +216,18 @@ The data for the hierarchical binomial model is on the Internet, but you have to
 
 ```{r show-rats-list}
 f <- "http://www.stat.columbia.edu/~gelman/book/data/rats.asc"
-rats_data <- as.list(read.table(file=f, header=TRUE, skip=3))
+rats_data <- read.table(file=f, header=TRUE, skip=3)
 rats_list <- list(
   y=rats_data$y, 
   n=rats_data$N,
   J=length(rats_data$y))
 print(rats_list)
+rats_data %>%
+  mutate(p=y/N) %>%
+  mutate(study=factor(row_number())) %>%
+  ggplot(aes(study, p)) +
+    geom_point() +
+    coord_flip()
 ```
 
 You've seen the individual pieces of the Stan code, but here is everything in one spot.
@@ -284,6 +298,14 @@ df$study %<>%
 ggplot(df, aes(x=study, y=prob_highest)) +
   geom_point() +
   coord_flip()
+
+rats_sim %>%
+  select(starts_with("rnk")) %>%
+  gather(study, rnk) %>%
+  filter(study=="rnk[1]") -> df
+ggplot(df, aes(x=rnk)) + 
+  geom_bar(aes(y = (..count..)/sum(..count..)),
+           color="black", fill="white")
 ```
 
 Save everything for possible later re-use.

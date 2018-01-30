@@ -15,7 +15,7 @@ render("~/stan-tutorial/src/stan.Rmd",
 
 ## Introduction
 
-This handout was created using RMarkdwon. You can get this handout and all of the code used to produce this handout at
+This handout was created using RMarkdown. You can get this handout and all of the code used to produce this handout at
 
 https://github.com/pmean/stan-tutorial.
 

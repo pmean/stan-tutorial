@@ -15,9 +15,13 @@ render("~/stan-tutorial/src/stan.Rmd",
 
 ## Introduction
 
+This handout was created using RMarkdwon. You can get this handout and all of the code used to produce this handout at
+
+https://github.com/pmean/stan-tutorial.
+
 This program shows a few features of Stan, a program to conduct Bayesian data analyses. A detailed overview of the design of Stan appears in
 
-Carpenter B et al (2017) Stan: A Probabilistic Programming Language. Journal of Statistical Software 70(1). Available at https://www.jstatsoft.org/article/view/v076i01.
+Carpenter B et al (2017) Stan: A Probabilistic Programming Language. Journal of Statistical Software 70(1). Available at https://www.jstatsoft.org/article/view/v076i01. Hereafter, I will refer to this paper as just "Carpenter."
 
 You can find other resources for Stan at http://mc-stan.org/.
 
@@ -25,7 +29,7 @@ You can find other resources for Stan at http://mc-stan.org/.
 
 You can run Stan as a stand-alone program, or you can run it from inside Python or R. I will show how to run a few simple Stan programs from within R using the RStan library.
 
-As described in footnote 2 on page 3 of Carpenter (2107), Stan takes code written in its own language, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
+As described in footnote 2 on page 3 of Carpenter, Stan takes code written in its own language, translates it into C++, compiles it, runs it, and saves the output to an object in R. This means that installation is a lot trickier than for most R libraries.
 
 In particular, you need a toolchain (a set of programming tools that help with the compiling and running of C++ code within R). The folks at Stan recommend RTools for Windows users. For the Mac, they recommend that you use "an official Xcode release from Apple."  Linux usually has all the pieces you need ("use your package manager to install build-essential and a recent version of either g++ or clang++. The package libssl-dev (up to version 1.0; version 1.1 brakes package PKI) is required as well."). 
 
@@ -35,7 +39,7 @@ Stan can easily run in parallel and can take advantage of the multiple cores ava
 
 ## Stan, a very simple example
 
-If you ever want to tinker with BUGS, jags, or Stan, you should start with the easiest example possible, a beta-binomial model. The example found on page 3 of Carpenter (2017) is just slightly more complicated because it has a vector of Bernoulli observations rather than a single binomial observation.
+If you ever want to tinker with BUGS, jags, or Stan, you should start with the easiest example possible, a beta-binomial model. The example found on page 3 of Carpenter is just slightly more complicated because it has a vector of Bernoulli observations rather than a single binomial observation.
 
 You need to store the Stan code in a file.
 
@@ -75,7 +79,7 @@ ggplot(sim_beta_bernoulli) +
 
 ## Markov Chain Monte Carlo
 
-Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution, f($\theta$) and a conditional likelihood g(Y|$\theta$). The posterior distribution is given by the formula
+Stan uses a simulation approach to estimate posterior distributions in a Bayesian model. Recall that a Bayesian model has a prior distribution f($\theta$) and a conditional likelihood g(Y|$\theta$). The posterior distribution is given by the formula
 
 $h(\theta|Y)=\frac{f(\theta)g(Y|\theta)}{\int{f(\theta)g(Y|\theta)d\theta}}$
 
@@ -87,11 +91,11 @@ One of the simplest MCMC methods, the Metropolis algorithm uses a simple accepta
 
 I have a [simple illustration of the Metropolis algorithm](http://www.pmean.com/07/MetropolisAlgorithm.html) on my website. I also developed a simulation of the geometric distribution using the Metropolis algorithm and couched it in terms of a [baby learning how to walk](http://blog.pmean.com/baby-walk/).
 
-There is a fair amount of autocorrelation in the successive values of the MCMC simulation. This occurs for two reasons. First, the jumping process insures that the successive values are close to one another. Second, the acceptance/rejection approach leads to situations where the sequence sometimes "stutters" and stays at the same position. This leads to a pathchiness in the simulation that is only overcome with simulation of thousands or tens of thousands of steps.
+There is a fair amount of autocorrelation in the successive values of the MCMC simulation. This occurs for two reasons. First, the jumping process insures that the successive values are close to one another. Second, the acceptance/rejection approach leads to situations where the sequence sometimes "stutters" and stays at the same position. This leads to a patchiness in the simulation that is only overcome with simulation of thousands or tens of thousands of steps.
 
 ## Early programs that used MCMC
 
-One of the first programs that allowed amateurs like me to apply MCMC simulations to Bayesian models was WinBUGS. BUGS stands for Bayes Using Gibbs Sampling and Gibbs sampling is another MCMC approach. WinBUGS first appeared on the scene in 1991, though I did not start exploring WinBUGS until 2010.
+One of the first programs that allowed amateurs like me to apply MCMC simulations to Bayesian models was WinBUGS. BUGS stands for Bayes Using Gibbs Sampling. Gibbs sampling is another MCMC approach. WinBUGS first appeared on the scene in 1991.
 
 Closely related to WinBUGS is OpenBUGS, an attempt to make the Gibbs sampler available to operating systems other than Windows.
 
@@ -105,7 +109,7 @@ On page 2 of Carpenter et al (2017), Stan differes from BUGS and jags in two way
 
 ## Stan and the HMC
 
-The HMC relies on the fact that not only do you know the relative height of the density at $\theta_i$ but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It's like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here's [an illustration of HMC in action](https://www.youtube.com/watch?v=59vKonIy2uU).
+The HMC relies on the fact that not only do you know the relative height of the density at $\theta_i$ but you also know the relative gradient. The HMC adds a momentum parameter to the jumping distribution. It's like giving a shove to a hockey puck in a random direction on a curved surface, and the shove causes the puck to travel in a curved path with the curve bending away from areas of low probability and bending towards areas of high probability. Here's [an illustration of HMC in action](https://www.youtube.com/watch?v=59vKonIy2uU) and a [second illustration](http://arogozhnikov.github.io/2016/12/19/markov_chain_monte_carlo.html).
 
 The use of HMC and an extension called the No U Turns sampler (NUTS) in Stan lets you get a much improved (faster and better coverage) simulation. This in turn allows you to fit Bayesian models to larger and more complex problems.
 
